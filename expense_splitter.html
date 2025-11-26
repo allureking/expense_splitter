@@ -3,18 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FairShare Matrix - Expense Manager</title>
+    <title>FairShare Matrix</title>
     <style>
         :root {
+            /* Light Mode Variables */
             --primary: #4f46e5;
             --primary-hover: #4338ca;
             --bg: #f3f4f6;
             --card: #ffffff;
             --text: #1f2937;
+            --text-secondary: #6b7280;
             --border: #e5e7eb;
+            --input-bg: #ffffff;
+            --th-bg: #f8fafc;
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
+            --tag-bg: #e0e7ff;
+            --tag-text: #3730a3;
+            --summary-card-bg: #eff6ff;
+            --summary-card-border: #bfdbfe;
+            --total-bg: #ecfdf5;
+            --total-border: #6ee7b7;
+        }
+
+        /* Dark Mode Variables */
+        [data-theme="dark"] {
+            --primary: #6366f1;
+            --primary-hover: #818cf8;
+            --bg: #111827;
+            --card: #1f2937;
+            --text: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --border: #374151;
+            --input-bg: #374151;
+            --th-bg: #111827;
+            --success: #34d399;
+            --danger: #f87171;
+            --warning: #fbbf24;
+            --tag-bg: #312e81;
+            --tag-text: #e0e7ff;
+            --summary-card-bg: #374151;
+            --summary-card-border: #4b5563;
+            --total-bg: #064e3b;
+            --total-border: #059669;
         }
 
         body {
@@ -25,54 +57,83 @@
             padding: 20px;
             display: flex;
             justify-content: center;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         .container {
             width: 100%;
-            max-width: 1000px; /* Wider container for the matrix table */
+            max-width: 1000px;
             display: grid;
             gap: 20px;
         }
 
-        /* Navigation */
-        .nav-bar { display: flex; gap: 10px; margin-bottom: 10px; }
+        /* Controls Header */
+        .header-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .app-title {
+            margin: 0;
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+        .settings-group {
+            display: flex;
+            gap: 10px;
+        }
+        .toggle-btn {
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            width: auto;
+        }
+
+        /* Tabs */
+        .nav-bar { display: flex; gap: 10px; }
         .nav-btn {
-            background: #d1d5db; color: var(--text); padding: 10px 20px;
+            background: var(--border); color: var(--text-secondary); padding: 10px 20px;
             border-radius: 6px; border: none; cursor: pointer; font-weight: bold; flex: 1;
+            transition: all 0.2s;
         }
         .nav-btn.active { background: var(--primary); color: white; }
 
         .card {
             background: var(--card); padding: 25px; border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-bottom: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid var(--border);
         }
 
         .hidden { display: none !important; }
 
-        h1, h2, h3 { margin-top: 0; }
-        h1 { color: var(--primary); text-align: center; }
-        h2 { border-bottom: 2px solid var(--bg); padding-bottom: 10px; margin-bottom: 20px; font-size: 1.3rem;}
+        h2 { border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 20px; font-size: 1.3rem; margin-top: 0;}
 
         /* Forms */
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; }
         input[type="text"], input[type="number"], input[type="file"] {
-            width: 100%; padding: 12px; border: 1px solid var(--border);
+            width: 100%; padding: 12px; 
+            background: var(--input-bg); color: var(--text);
+            border: 1px solid var(--border);
             border-radius: 6px; box-sizing: border-box; font-size: 1rem;
         }
+        input::placeholder { color: var(--text-secondary); opacity: 0.7; }
 
         button {
             background-color: var(--primary); color: white; border: none;
             padding: 12px 20px; border-radius: 6px; cursor: pointer;
             font-size: 1rem; width: 100%; font-weight: 600;
-            transition: background 0.2s;
+            transition: opacity 0.2s;
         }
-        button:hover { background-color: var(--primary-hover); }
-        button.secondary { background-color: #6b7280; margin-top: 10px;}
+        button:hover { opacity: 0.9; }
+        button.secondary { background-color: var(--text-secondary); margin-top: 10px;}
         button.danger { background-color: var(--danger); margin-top: 10px;}
         button.success { background-color: var(--success); }
         
-        /* Small action buttons */
         button.icon-btn { 
             width: 32px; height: 32px; padding: 0; border-radius: 4px;
             display: flex; align-items: center; justify-content: center;
@@ -83,8 +144,8 @@
         /* People List */
         .people-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
         .person-tag {
-            background: #e0e7ff; color: #3730a3; padding: 6px 12px;
-            border-radius: 20px; font-size: 0.9rem;
+            background: var(--tag-bg); color: var(--tag-text); padding: 6px 12px;
+            border-radius: 20px; font-size: 0.9rem; border: 1px solid var(--border);
         }
 
         /* Matrix Table Styles */
@@ -98,19 +159,18 @@
         }
         th, td { 
             text-align: left; padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle;
+            color: var(--text);
         }
-        th { background-color: #f8fafc; color: #64748b; font-weight: 600; }
+        th { background-color: var(--th-bg); color: var(--text-secondary); font-weight: 600; }
         
-        /* Center checkmarks */
-        th.text-center, td.text-center { text-align: center; }
+        .text-center { text-align: center; }
         
-        /* Checkbox styling */
         input[type="checkbox"].matrix-check {
             width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary);
         }
 
         .amount { font-family: 'Courier New', monospace; font-weight: bold; }
-        .sub-text { font-size: 0.8rem; color: #6b7280; margin-top: 2px; }
+        .sub-text { font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px; }
 
         /* Summary */
         .summary-grid {
@@ -118,33 +178,33 @@
             gap: 15px;
         }
         .summary-card {
-            background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px;
-            border-radius: 8px; text-align: center;
+            background: var(--summary-card-bg); border: 1px solid var(--summary-card-border); 
+            padding: 15px; border-radius: 8px; text-align: center;
         }
         .total-project {
-            background: #ecfdf5; border: 1px solid #6ee7b7; padding: 15px;
+            background: var(--total-bg); border: 1px solid var(--total-border); padding: 15px;
             border-radius: 8px; text-align: center; font-size: 1.2rem; margin-bottom: 20px;
         }
 
         /* Modal */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); display: flex; justify-content: center;
+            background: rgba(0,0,0,0.6); display: flex; justify-content: center;
             align-items: center; z-index: 1000;
         }
         .modal-content {
-            background: white; padding: 25px; border-radius: 12px;
-            width: 90%; max-width: 400px;
+            background: var(--card); padding: 25px; border-radius: 12px;
+            width: 90%; max-width: 400px; border: 1px solid var(--border);
+            color: var(--text);
         }
         
         .import-area {
-            border: 2px dashed #cbd5e1; padding: 20px; border-radius: 8px;
-            text-align: center; margin-bottom: 20px; background: #f8fafc;
+            border: 2px dashed var(--border); padding: 20px; border-radius: 8px;
+            text-align: center; margin-bottom: 20px; background: var(--bg);
         }
         
-        /* History Item */
         .history-item {
-            background: white; border: 1px solid var(--border); padding: 15px;
+            background: var(--card); border: 1px solid var(--border); padding: 15px;
             margin-bottom: 10px; border-radius: 8px; display: flex;
             justify-content: space-between; align-items: center;
         }
@@ -153,9 +213,19 @@
 <body>
 
 <div class="container">
+    
+    <!-- Controls -->
+    <div class="header-controls">
+        <h1 class="app-title" data-i18n="appTitle">FairShare Matrix</h1>
+        <div class="settings-group">
+            <button class="toggle-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
+            <button class="toggle-btn" onclick="toggleLang()" id="langBtn">EN</button>
+        </div>
+    </div>
+
     <div class="nav-bar">
-        <button id="btnTabCurrent" class="nav-btn active" onclick="switchTab('current')">Active Project</button>
-        <button id="btnTabHistory" class="nav-btn" onclick="switchTab('history')">History</button>
+        <button id="btnTabCurrent" class="nav-btn active" onclick="switchTab('current')" data-i18n="tabCurrent">Active Project</button>
+        <button id="btnTabHistory" class="nav-btn" onclick="switchTab('history')" data-i18n="tabHistory">History</button>
     </div>
 
     <!-- ================= CURRENT PROJECT VIEW ================= -->
@@ -163,51 +233,51 @@
         
         <div class="card">
             <div class="form-group">
-                <label>Project Name</label>
-                <input type="text" id="projectName" placeholder="e.g. 2025 Orlando Trip">
+                <label data-i18n="projNameLabel">Project Name</label>
+                <input type="text" id="projectName" data-i18n-ph="projNamePh" placeholder="e.g. 2025 Orlando Trip">
             </div>
         </div>
 
         <!-- 1. People -->
         <div class="card">
-            <h2>1. Add People</h2>
+            <h2 data-i18n="secPeople">1. Add People</h2>
             <div style="display: flex; gap: 10px;">
-                <input type="text" id="newPersonName" placeholder="Enter name">
-                <button onclick="addPerson()" style="width: auto;">Add</button>
+                <input type="text" id="newPersonName" data-i18n-ph="namePh" placeholder="Enter name">
+                <button onclick="addPerson()" style="width: auto;" data-i18n="addBtn">Add</button>
             </div>
             <div class="people-list" id="displayPeopleList"></div>
         </div>
 
         <!-- 2. Expenses & Import -->
         <div class="card">
-            <h2>2. Add Expenses</h2>
+            <h2 data-i18n="secExpenses">2. Add Expenses</h2>
             
             <div class="import-area">
-                <h3 style="margin-top:0; font-size:1rem; color:#64748b;">Import from MOZE CSV</h3>
+                <h3 style="margin-top:0; font-size:1rem; color:var(--text-secondary);" data-i18n="importTitle">Import from MOZE CSV</h3>
                 <input type="file" id="csvInput" accept=".csv" style="margin-bottom: 10px;">
-                <button onclick="processCSV()" class="secondary">Process CSV</button>
+                <button onclick="processCSV()" class="secondary" data-i18n="processBtn">Process CSV</button>
             </div>
 
             <!-- Manual Entry -->
-            <h3>Manual Entry</h3>
+            <h3 data-i18n="manualEntry">Manual Entry</h3>
             <div style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 10px; align-items: end;">
                 <div class="form-group" style="margin-bottom:0;">
-                    <input type="text" id="itemName" placeholder="Item Name">
+                    <input type="text" id="itemName" data-i18n-ph="itemPh" placeholder="Item Name">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
                     <input type="number" id="itemAmount" placeholder="0.00" step="0.01">
                 </div>
-                <button onclick="addExpense()" style="margin-bottom:0; height: 44px;">Add</button>
+                <button onclick="addExpense()" style="margin-bottom:0; height: 44px;" data-i18n="addBtn">Add</button>
             </div>
-            <p style="font-size: 0.8rem; color: #666; margin-top: 5px;">(Defaults to splitting with everyone. Uncheck in the table below to adjust.)</p>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 5px;" data-i18n="defaultsText">(Defaults to splitting with everyone. Uncheck in the table below to adjust.)</p>
         </div>
 
         <!-- 3. Matrix Table & Summary -->
         <div class="card">
-            <h2>3. Split Matrix & Summary</h2>
+            <h2 data-i18n="secMatrix">3. Split Matrix & Summary</h2>
             
             <div class="total-project">
-                <strong>Total Cost: </strong>
+                <strong data-i18n="totalCost">Total Cost: </strong>
                 <span id="grandTotal" class="amount">$0.00</span>
             </div>
 
@@ -224,9 +294,9 @@
                 </table>
             </div>
             
-            <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; display:flex; gap:10px;">
-                <button class="success" onclick="archiveProject()">✅ Finish & Save</button>
-                <button class="danger" onclick="resetCurrent(true)">🗑️ Clear All</button>
+            <div style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 20px; display:flex; gap:10px;">
+                <button class="success" onclick="archiveProject()" data-i18n="finishBtn">✅ Finish & Save</button>
+                <button class="danger" onclick="resetCurrent(true)" data-i18n="clearBtn">🗑️ Clear All</button>
             </div>
         </div>
     </div>
@@ -234,39 +304,130 @@
     <!-- ================= HISTORY VIEW ================= -->
     <div id="viewHistory" class="hidden">
         <div class="card">
-            <h2>Project History</h2>
+            <h2 data-i18n="historyTitle">Project History</h2>
             <div id="historyList">
-                <p>No saved projects yet.</p>
+                <p data-i18n="noHistory">No saved projects yet.</p>
             </div>
-            <button class="danger" onclick="clearHistory()" style="margin-top:20px;">Clear All History</button>
+            <button class="danger" onclick="clearHistory()" style="margin-top:20px;" data-i18n="clearHistoryBtn">Clear All History</button>
         </div>
     </div>
 
 </div>
 
-<!-- ================= EDIT DETAILS MODAL (Only for Name/Amount) ================= -->
+<!-- ================= EDIT DETAILS MODAL ================= -->
 <div id="editModal" class="modal-overlay hidden">
     <div class="modal-content">
-        <h3>Edit Item Details</h3>
+        <h3 data-i18n="editTitle">Edit Item Details</h3>
         
         <div class="form-group">
-            <label>Item Name</label>
+            <label data-i18n="itemPh">Item Name</label>
             <input type="text" id="editItemName">
         </div>
         
         <div class="form-group">
-            <label>Amount</label>
+            <label data-i18n="amountLabel">Amount</label>
             <input type="number" id="editItemAmount" step="0.01">
         </div>
 
         <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button class="secondary" onclick="closeEditModal()">Cancel</button>
-            <button class="success" onclick="saveEdit()">Save</button>
+            <button class="secondary" onclick="closeEditModal()" data-i18n="cancelBtn">Cancel</button>
+            <button class="success" onclick="saveEdit()" data-i18n="saveBtn">Save</button>
         </div>
     </div>
 </div>
 
 <script>
+    // ================= CONFIG & LANGUAGES =================
+    const I18N = {
+        en: {
+            appTitle: "FairShare Matrix",
+            tabCurrent: "Active Project",
+            tabHistory: "History",
+            projNameLabel: "Project Name",
+            projNamePh: "e.g. 2025 Orlando Trip",
+            secPeople: "1. Add People",
+            addBtn: "Add",
+            namePh: "Enter name",
+            secExpenses: "2. Add Expenses",
+            importTitle: "Import from MOZE CSV",
+            processBtn: "Process CSV",
+            manualEntry: "Manual Entry",
+            itemPh: "Item Name",
+            amountLabel: "Amount",
+            defaultsText: "(Defaults to splitting with everyone. Uncheck in the table below to adjust.)",
+            secMatrix: "3. Split Matrix & Summary",
+            totalCost: "Total Cost: ",
+            finishBtn: "✅ Finish & Save",
+            clearBtn: "🗑️ Clear All",
+            historyTitle: "Project History",
+            noHistory: "No saved projects yet.",
+            clearHistoryBtn: "Clear All History",
+            pays: "Pays",
+            notSplit: "Not split",
+            costSplit: "Cost / Split",
+            actions: "Actions",
+            editTitle: "Edit Item Details",
+            cancelBtn: "Cancel",
+            saveBtn: "Save",
+            loadBtn: "Load",
+            savedAt: "Saved: ",
+            addPeopleSplit: "Add people to split",
+            importedItemDefault: "Imported Item",
+            confirmDelExp: "Delete this expense?",
+            confirmClear: "Clear all current project data?",
+            confirmClearHistory: "Delete all history?",
+            confirmLoad: "Loading will overwrite current unsaved data. Continue?",
+            alertNoFile: "Please select a CSV file first.",
+            alertNoPeople: "Please add at least one person (Section 1) before importing.",
+            alertImported: "expenses imported. Adjust splits below."
+        },
+        cn: {
+            appTitle: "FairShare 费用分摊",
+            tabCurrent: "当前项目",
+            tabHistory: "历史记录",
+            projNameLabel: "项目名称",
+            projNamePh: "例如：2025 奥兰多之旅",
+            secPeople: "1. 添加成员",
+            addBtn: "添加",
+            namePh: "输入名字",
+            secExpenses: "2. 添加费用",
+            importTitle: "从 MOZE CSV 导入",
+            processBtn: "处理 CSV",
+            manualEntry: "手动录入",
+            itemPh: "消费项目名称",
+            amountLabel: "金额",
+            defaultsText: "（默认为所有人平摊。请在下方表格中取消勾选以调整。）",
+            secMatrix: "3. 分摊详情与汇总",
+            totalCost: "总花费：",
+            finishBtn: "✅ 完成并存档",
+            clearBtn: "🗑️ 清空所有",
+            historyTitle: "项目历史",
+            noHistory: "暂无保存的项目。",
+            clearHistoryBtn: "清空所有历史",
+            pays: "应付",
+            notSplit: "未分摊",
+            costSplit: "金额 / 分摊",
+            actions: "操作",
+            editTitle: "编辑费用详情",
+            cancelBtn: "取消",
+            saveBtn: "保存",
+            loadBtn: "加载",
+            savedAt: "保存于：",
+            addPeopleSplit: "请先添加成员",
+            importedItemDefault: "导入项目",
+            confirmDelExp: "确定删除这笔费用吗？",
+            confirmClear: "确定清空当前项目数据吗？",
+            confirmClearHistory: "确定删除所有历史记录吗？",
+            confirmLoad: "加载历史项目将覆盖当前未保存的数据。继续吗？",
+            alertNoFile: "请先选择 CSV 文件。",
+            alertNoPeople: "导入前请先添加至少一名成员（步骤 1）。",
+            alertImported: "笔费用已导入。请在下方调整分摊详情。"
+        }
+    };
+
+    let currentLang = localStorage.getItem('fs_lang') || 'en';
+    let currentTheme = localStorage.getItem('fs_theme') || 'light';
+
     // ================= STATE =================
     let currentProject = {
         name: "",
@@ -276,6 +437,53 @@
     
     let editingIndex = -1;
     let projectHistory = JSON.parse(localStorage.getItem('expenseSplitterHistory')) || [];
+
+    // ================= INIT =================
+    window.onload = function() {
+        applyTheme(currentTheme);
+        applyLanguage(currentLang);
+    };
+
+    // ================= THEME & LANG LOGIC =================
+    function toggleTheme() {
+        currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+        localStorage.setItem('fs_theme', currentTheme);
+        applyTheme(currentTheme);
+    }
+
+    function applyTheme(theme) {
+        document.body.setAttribute('data-theme', theme);
+        document.getElementById('themeBtn').innerText = theme === 'light' ? '🌙' : '☀️';
+    }
+
+    function toggleLang() {
+        currentLang = currentLang === 'en' ? 'cn' : 'en';
+        localStorage.setItem('fs_lang', currentLang);
+        applyLanguage(currentLang);
+    }
+
+    function applyLanguage(lang) {
+        document.getElementById('langBtn').innerText = lang === 'en' ? 'EN' : '中';
+        
+        // Static text
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if(I18N[lang][key]) el.innerText = I18N[lang][key];
+        });
+
+        // Placeholders
+        document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+            const key = el.getAttribute('data-i18n-ph');
+            if(I18N[lang][key]) el.placeholder = I18N[lang][key];
+        });
+
+        // Re-render dynamic components
+        renderExpenses();
+        renderHistory();
+    }
+
+    // Helper to get text
+    const t = (key) => I18N[currentLang][key];
 
     // ================= VIEW LOGIC =================
 
@@ -300,7 +508,6 @@
         container.innerHTML = currentProject.people.map(p => 
             `<span class="person-tag">👤 ${p}</span>`
         ).join('');
-        // Re-render table to add/remove columns for the person
         renderExpenses();
     }
 
@@ -312,26 +519,23 @@
         // 1. Build Header Row
         let headerHTML = `
             <tr>
-                <th style="min-width: 150px;">Item</th>
-                <th style="min-width: 100px;">Cost / Split</th>
+                <th style="min-width: 150px;">${t('itemPh')}</th>
+                <th style="min-width: 100px;">${t('costSplit')}</th>
         `;
         
-        // Add a column for each person
         if (people.length === 0) {
-            headerHTML += `<th><i>Add people to split</i></th>`;
+            headerHTML += `<th><i>${t('addPeopleSplit')}</i></th>`;
         } else {
             people.forEach(p => {
                 headerHTML += `<th class="text-center" style="min-width:80px;">${p}</th>`;
             });
         }
         
-        headerHTML += `<th style="width: 80px;">Actions</th></tr>`;
+        headerHTML += `<th style="width: 80px;">${t('actions')}</th></tr>`;
         thead.innerHTML = headerHTML;
 
         // 2. Build Body Rows
         tbody.innerHTML = currentProject.expenses.map((e, index) => {
-            
-            // Checkboxes for each person
             let checkBoxesHTML = '';
             
             if (people.length === 0) {
@@ -351,7 +555,7 @@
 
             const splitText = e.involved.length > 0 
                 ? `$${e.splitAmount.toFixed(2)}/ea` 
-                : `<span style="color:#ef4444">Not split</span>`;
+                : `<span style="color:var(--danger)">${t('notSplit')}</span>`;
 
             return `
                 <tr>
@@ -366,7 +570,7 @@
                     ${checkBoxesHTML}
                     <td>
                         <div style="display:flex; gap:5px;">
-                            <button class="icon-btn edit-btn" title="Edit Details" onclick="openEditModal(${index})">✎</button>
+                            <button class="icon-btn edit-btn" title="Edit" onclick="openEditModal(${index})">✎</button>
                             <button class="icon-btn del-btn" title="Delete" onclick="removeExpense(${index})">✕</button>
                         </div>
                     </td>
@@ -382,21 +586,16 @@
         const personIndex = expense.involved.indexOf(personName);
 
         if (personIndex === -1) {
-            // Add person
             expense.involved.push(personName);
         } else {
-            // Remove person
             expense.involved.splice(personIndex, 1);
         }
 
-        // Recalculate split for this item
         if (expense.involved.length > 0) {
             expense.splitAmount = expense.totalAmount / expense.involved.length;
         } else {
             expense.splitAmount = 0;
         }
-
-        // Re-render to update amounts
         renderExpenses();
     }
 
@@ -420,7 +619,7 @@
         container.innerHTML = currentProject.people.map(p => `
             <div class="summary-card">
                 <div style="font-weight:bold;">${p}</div>
-                <div class="sub-text">Pays</div>
+                <div class="sub-text">${t('pays')}</div>
                 <div class="amount" style="color:var(--primary); font-size:1.2rem;">$${(personTotals[p] || 0).toFixed(2)}</div>
             </div>
         `).join('');
@@ -434,11 +633,6 @@
         if (name && !currentProject.people.includes(name)) {
             currentProject.people.push(name);
             input.value = '';
-            
-            // Add new person to ALL existing expenses by default? 
-            // Usually simpler to NOT add them to existing ones to avoid disrupting history,
-            // or let user click checkboxes. Let's leave them unchecked for existing items.
-            
             renderPeople();
         }
     }
@@ -446,15 +640,12 @@
     function addExpense() {
         const nameInput = document.getElementById('itemName');
         const amountInput = document.getElementById('itemAmount');
-        
         const name = nameInput.value.trim();
         const amount = parseFloat(amountInput.value);
 
         if (!name || isNaN(amount) || amount <= 0) return alert("Invalid Name or Amount");
-        
-        // Default: Split with EVERYONE currently in the list
         const involved = [...currentProject.people];
-        if (involved.length === 0) return alert("Please add people first.");
+        if (involved.length === 0) return alert(t('addPeopleSplit')); // Reuse string
 
         currentProject.expenses.push({
             name,
@@ -470,14 +661,14 @@
     }
 
     function removeExpense(index) {
-        if(confirm("Delete this expense?")) {
+        if(confirm(t('confirmDelExp'))) {
             currentProject.expenses.splice(index, 1);
             renderExpenses();
         }
     }
 
     function resetCurrent(confirmMsg) {
-        if(confirmMsg && !confirm("Clear all current project data?")) return;
+        if(confirmMsg && !confirm(t('confirmClear'))) return;
         currentProject = { name: "", people: [], expenses: [] };
         document.getElementById('projectName').value = "";
         document.getElementById('displayPeopleList').innerHTML = "";
@@ -498,12 +689,12 @@
         projectHistory.unshift(currentProject); 
         localStorage.setItem('expenseSplitterHistory', JSON.stringify(projectHistory));
         
-        alert("Project Saved to History!");
+        alert(t('finishBtn')); // Simple alert using button text
         resetCurrent(false);
         switchTab('history');
     }
 
-    // ================= EDIT MODAL (Name/Amount only) =================
+    // ================= EDIT MODAL =================
 
     function openEditModal(index) {
         editingIndex = index;
@@ -520,7 +711,6 @@
 
     function saveEdit() {
         if (editingIndex === -1) return;
-
         const name = document.getElementById('editItemName').value.trim();
         const amount = parseFloat(document.getElementById('editItemAmount').value);
 
@@ -530,7 +720,6 @@
         exp.name = name;
         exp.totalAmount = amount;
         
-        // Recalc split amount based on existing involved people
         if (exp.involved.length > 0) {
             exp.splitAmount = exp.totalAmount / exp.involved.length;
         }
@@ -540,30 +729,18 @@
     }
 
     // ================= CSV LOGIC =================
-
     function parseCSVLine(text) {
         let result = [];
         let cell = '';
         let insideQuote = false;
-
         for (let i = 0; i < text.length; i++) {
             const char = text[i];
             const nextChar = text[i+1];
-
-            if (char === '"' && insideQuote && nextChar === '"') {
-                cell += '"';
-                i++; 
-            } else if (char === '"') {
-                insideQuote = !insideQuote;
-            } else if (char === ',' && !insideQuote) {
-                result.push(cell);
-                cell = '';
-            } else if ((char === '\r' || char === '\n') && !insideQuote) {
-                result.push(cell);
-                return { row: result, endIndex: i };
-            } else {
-                cell += char;
-            }
+            if (char === '"' && insideQuote && nextChar === '"') { cell += '"'; i++; } 
+            else if (char === '"') { insideQuote = !insideQuote; } 
+            else if (char === ',' && !insideQuote) { result.push(cell); cell = ''; } 
+            else if ((char === '\r' || char === '\n') && !insideQuote) { result.push(cell); return { row: result, endIndex: i }; } 
+            else { cell += char; }
         }
         result.push(cell);
         return { row: result, endIndex: text.length };
@@ -573,7 +750,6 @@
         const rows = [];
         let cursor = 0;
         if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-
         while(cursor < text.length) {
             const { row, endIndex } = parseCSVLine(text.slice(cursor));
             if(row.length > 1) rows.push(row); 
@@ -587,15 +763,14 @@
         const fileInput = document.getElementById('csvInput');
         const file = fileInput.files[0];
 
-        if (!file) return alert("Please select a CSV file first.");
-        if (currentProject.people.length === 0) return alert("Please add at least one person (Section 1) before importing.");
+        if (!file) return alert(t('alertNoFile'));
+        if (currentProject.people.length === 0) return alert(t('alertNoPeople'));
 
         const reader = new FileReader();
         reader.onload = function(e) {
             const text = e.target.result;
             const rows = parseCSV(text);
-
-            if (rows.length < 2) return alert("CSV appears empty or invalid.");
+            if (rows.length < 2) return alert("CSV appears empty.");
 
             const headers = rows[0].map(h => h.trim());
             const idxAmount = headers.indexOf('金额');
@@ -603,35 +778,32 @@
             const idxDesc = headers.indexOf('描述');
             const idxDate = headers.indexOf('日期');
 
-            if (idxAmount === -1) return alert("Could not find '金额' (Amount) column.");
+            if (idxAmount === -1) return alert("Error: Could not find '金额' column.");
 
             let importCount = 0;
-
             for (let i = 1; i < rows.length; i++) {
                 const row = rows[i];
                 if (row.length < idxAmount) continue;
-
                 const rawAmt = parseFloat(row[idxAmount]);
-                
                 if (!isNaN(rawAmt) && rawAmt < 0) {
                     const amount = Math.abs(rawAmt);
                     let name = row[idxName] ? row[idxName].trim() : "";
                     if (!name && idxDesc !== -1) name = row[idxDesc] ? row[idxDesc].trim() : "";
                     name = name.replace(/[\r\n]+/g, ' ').substring(0, 50);
-                    if (!name) name = "Imported Item";
+                    if (!name) name = t('importedItemDefault'); // Use translated default
                     const date = idxDate !== -1 ? row[idxDate] : "";
 
                     currentProject.expenses.push({
                         name: name,
                         totalAmount: amount,
-                        involved: [...currentProject.people], // Default: ALL
+                        involved: [...currentProject.people],
                         splitAmount: amount / currentProject.people.length,
                         date: date
                     });
                     importCount++;
                 }
             }
-            alert(`Imported ${importCount} expenses. Adjust splits in the table below.`);
+            alert(`${importCount} ${t('alertImported')}`);
             fileInput.value = ''; 
             renderExpenses();
         };
@@ -639,11 +811,10 @@
     }
 
     // ================= HISTORY =================
-    
     function renderHistory() {
         const container = document.getElementById('historyList');
         if (projectHistory.length === 0) {
-            container.innerHTML = '<p>No saved projects yet.</p>';
+            container.innerHTML = `<p>${t('noHistory')}</p>`;
             return;
         }
 
@@ -653,11 +824,11 @@
                 <div class="history-item">
                     <div>
                         <div style="font-weight:bold; font-size:1.1rem;">${proj.name}</div>
-                        <div class="history-details">Saved: ${proj.archivedAt} | ${proj.people.length} People</div>
+                        <div class="history-details">${t('savedAt')} ${proj.archivedAt} | ${proj.people.length} People</div>
                     </div>
                     <div style="text-align:right;">
                         <div class="amount" style="font-size:1.2rem; color:var(--primary);">$${total.toFixed(2)}</div>
-                        <button style="width:auto; padding:5px 10px; margin-top:5px; font-size:0.8rem;" onclick="loadProjectFromHistory(${idx})">Load</button>
+                        <button style="width:auto; padding:5px 10px; margin-top:5px; font-size:0.8rem;" onclick="loadProjectFromHistory(${idx})">${t('loadBtn')}</button>
                     </div>
                 </div>
             `;
@@ -665,7 +836,7 @@
     }
 
     function clearHistory() {
-        if(confirm("Delete all history?")) {
+        if(confirm(t('confirmClearHistory'))) {
             localStorage.removeItem('expenseSplitterHistory');
             projectHistory = [];
             renderHistory();
@@ -674,13 +845,12 @@
 
     function loadProjectFromHistory(index) {
         if(currentProject.expenses.length > 0) {
-            if(!confirm("Loading will overwrite current unsaved data. Continue?")) return;
+            if(!confirm(t('confirmLoad'))) return;
         }
         currentProject = JSON.parse(JSON.stringify(projectHistory[index]));
         document.getElementById('projectName').value = currentProject.name;
         switchTab('current');
         renderPeople();
-        renderExpenses();
     }
 </script>
 
