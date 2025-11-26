@@ -3,15 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FairShare - Expense Splitter</title>
+    <title>FairShare Pro - Expense Manager</title>
     <style>
         :root {
-            --primary: #2563eb;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
             --bg: #f3f4f6;
             --card: #ffffff;
             --text: #1f2937;
             --border: #e5e7eb;
             --success: #10b981;
+            --danger: #ef4444;
         }
 
         body {
@@ -26,57 +28,87 @@
 
         .container {
             width: 100%;
-            max-width: 800px;
+            max-width: 900px;
             display: grid;
             gap: 20px;
         }
 
-        .card {
-            background: var(--card);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        /* Navigation / Tabs */
+        .nav-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .nav-btn {
+            background: #d1d5db;
+            color: var(--text);
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            flex: 1;
+        }
+        .nav-btn.active {
+            background: var(--primary);
+            color: white;
         }
 
+        .card {
+            background: var(--card);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .hidden { display: none; }
+
         h1, h2, h3 { margin-top: 0; }
-        h1 { color: var(--primary); text-align: center; }
+        h1 { color: var(--primary); text-align: center; font-size: 1.8rem; }
+        h2 { border-bottom: 2px solid var(--bg); padding-bottom: 10px; margin-bottom: 20px; font-size: 1.3rem;}
 
         /* Form Elements */
         .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; }
-        input[type="text"], input[type="number"] {
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; }
+        input[type="text"], input[type="number"], input[type="file"] {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: 1px solid var(--border);
-            border-radius: 4px;
+            border-radius: 6px;
             box-sizing: border-box;
+            font-size: 1rem;
         }
 
         button {
             background-color: var(--primary);
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
+            padding: 12px 20px;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 1rem;
             width: 100%;
+            font-weight: 600;
+            transition: background 0.2s;
         }
-        button:hover { opacity: 0.9; }
+        button:hover { background-color: var(--primary-hover); }
         button.secondary { background-color: #6b7280; margin-top: 10px;}
+        button.danger { background-color: var(--danger); margin-top: 10px;}
+        button.success { background-color: var(--success); }
 
         /* People Tags */
         .people-list {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 15px;
+            gap: 8px;
+            margin-top: 10px;
         }
         .person-tag {
-            background: #dbeafe;
-            color: #1e40af;
-            padding: 5px 10px;
-            border-radius: 15px;
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 6px 12px;
+            border-radius: 20px;
             font-size: 0.9rem;
             display: flex;
             align-items: center;
@@ -86,162 +118,291 @@
         /* Checkbox Grid */
         .checkbox-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             gap: 10px;
             margin-top: 10px;
+            background: #f9fafb;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
         }
         .checkbox-item {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
+            font-size: 0.9rem;
             cursor: pointer;
         }
-        .checkbox-item:hover { background-color: #f9fafb; }
 
         /* Tables */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.95rem; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); }
-        th { background-color: #f8fafc; }
+        th { background-color: #f8fafc; color: #64748b; font-weight: 600; }
         
         .amount { font-family: 'Courier New', monospace; font-weight: bold; }
+        .negative { color: var(--danger); }
+        .positive { color: var(--success); }
         
         /* Summary Cards */
         .summary-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 15px;
         }
         .summary-card {
             background: #eff6ff;
             border: 1px solid #bfdbfe;
             padding: 15px;
-            border-radius: 6px;
+            border-radius: 8px;
+            text-align: center;
         }
         .total-project {
             background: #ecfdf5;
-            border-color: #6ee7b7;
+            border: 1px solid #6ee7b7;
+            padding: 15px;
+            border-radius: 8px;
             text-align: center;
             font-size: 1.2rem;
             margin-bottom: 20px;
+        }
+
+        /* History Items */
+        .history-item {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-details { font-size: 0.9rem; color: #666; }
+
+        /* Import Area */
+        .import-area {
+            border: 2px dashed #cbd5e1;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+            background: #f8fafc;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>FairShare Splitter</h1>
-
-    <!-- SECTION 1: ADD PEOPLE -->
-    <div class="card" id="setupSection">
-        <h2>1. Who is involved?</h2>
-        <div class="form-group">
-            <input type="text" id="newPersonName" placeholder="Enter person's name (e.g., Alice)">
-        </div>
-        <button onclick="addPerson()">Add Person</button>
-        <div class="people-list" id="displayPeopleList" style="margin-top: 15px;"></div>
+    <div class="nav-bar">
+        <button id="btnTabCurrent" class="nav-btn active" onclick="switchTab('current')">Active Project</button>
+        <button id="btnTabHistory" class="nav-btn" onclick="switchTab('history')">History</button>
     </div>
 
-    <!-- SECTION 2: ADD EXPENSE -->
-    <div class="card">
-        <h2>2. Add Expense</h2>
-        <div class="form-group">
-            <label>Item Name</label>
-            <input type="text" id="itemName" placeholder="e.g., Pizza Dinner">
-        </div>
-        <div class="form-group">
-            <label>Total Amount ($)</label>
-            <input type="number" id="itemAmount" placeholder="0.00" step="0.01">
-        </div>
+    <!-- ================= CURRENT PROJECT VIEW ================= -->
+    <div id="viewCurrent">
         
-        <div class="form-group">
-            <label>Split with whom? (Select below)</label>
-            <div id="splitCheckboxes" class="checkbox-grid">
-                <!-- Checkboxes will appear here dynamically -->
-                <p style="color: #666; font-size: 0.9rem;">Add people in step 1 to see options here.</p>
+        <!-- Project Header -->
+        <div class="card">
+            <div class="form-group">
+                <label>Project Name</label>
+                <input type="text" id="projectName" placeholder="e.g. 2025 Orlando Trip">
             </div>
         </div>
 
-        <button onclick="addExpense()">Add Expense</button>
-    </div>
-
-    <!-- SECTION 3: SUMMARY -->
-    <div class="card">
-        <h2>3. Summary & Breakdown</h2>
-        
-        <div class="total-project">
-            <strong>Total Project Cost: </strong>
-            <span id="grandTotal" class="amount">$0.00</span>
+        <!-- 1. People -->
+        <div class="card">
+            <h2>1. People</h2>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="newPersonName" placeholder="Enter name">
+                <button onclick="addPerson()" style="width: auto;">Add</button>
+            </div>
+            <div class="people-list" id="displayPeopleList"></div>
         </div>
 
-        <h3>Cost Per Person</h3>
-        <div id="personSummary" class="summary-grid">
-            <!-- Person totals go here -->
+        <!-- 2. Expenses & Import -->
+        <div class="card">
+            <h2>2. Expenses</h2>
+            
+            <!-- Import Section -->
+            <div class="import-area">
+                <h3 style="margin-top:0; font-size:1rem; color:#64748b;">Import from MOZE CSV</h3>
+                <input type="file" id="csvInput" accept=".csv" style="margin-bottom: 10px;">
+                <button onclick="processCSV()" class="secondary">Process CSV</button>
+                <p style="font-size: 0.8rem; color: #888; margin-bottom: 0;">Extracts 'Name' (or 'Description') and 'Amount'. Filters for expenses only.</p>
+            </div>
+
+            <!-- Manual Entry -->
+            <h3>Manual Entry</h3>
+            <div class="form-group">
+                <input type="text" id="itemName" placeholder="Item Name">
+            </div>
+            <div class="form-group">
+                <input type="number" id="itemAmount" placeholder="Amount (0.00)" step="0.01">
+            </div>
+            
+            <div class="form-group">
+                <label>Split between:</label>
+                <div id="splitCheckboxes" class="checkbox-grid">
+                    <span style="color:#888; grid-column: 1/-1;">Add people above to select splits.</span>
+                </div>
+            </div>
+
+            <button onclick="addExpense()">Add Expense</button>
         </div>
 
-        <h3>Expense Log</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Item</th>
-                    <th>Cost</th>
-                    <th>Shared By</th>
-                    <th>Cost/Head</th>
-                </tr>
-            </thead>
-            <tbody id="expenseLog">
-            </tbody>
-        </table>
-        
-        <button class="secondary" onclick="resetAll()">Reset All</button>
+        <!-- 3. Summary -->
+        <div class="card">
+            <h2>3. Summary</h2>
+            
+            <div class="total-project">
+                <strong>Total Cost: </strong>
+                <span id="grandTotal" class="amount">$0.00</span>
+            </div>
+
+            <div id="personSummary" class="summary-grid"></div>
+
+            <h3>Expense Log</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Cost</th>
+                            <th>Split Details</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenseLog"></tbody>
+                </table>
+            </div>
+            
+            <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+                <button class="success" onclick="archiveProject()">✅ Finish & Save to History</button>
+                <button class="danger" onclick="resetCurrent(true)">🗑️ Clear Current Data</button>
+            </div>
+        </div>
     </div>
+
+    <!-- ================= HISTORY VIEW ================= -->
+    <div id="viewHistory" class="hidden">
+        <div class="card">
+            <h2>Project History</h2>
+            <div id="historyList">
+                <p>No saved projects yet.</p>
+            </div>
+            <button class="danger" onclick="clearHistory()" style="margin-top:20px;">Clear All History</button>
+        </div>
+    </div>
+
 </div>
 
 <script>
-    // State
-    let people = [];
-    let expenses = [];
+    // ================= STATE MANAGEMENT =================
+    let currentProject = {
+        name: "",
+        people: [],
+        expenses: []
+    };
 
-    // --- SECTION 1 LOGIC: PEOPLE ---
+    let projectHistory = JSON.parse(localStorage.getItem('expenseSplitterHistory')) || [];
+
+    // ================= UI LOGIC =================
+
+    function switchTab(tab) {
+        document.getElementById('viewCurrent').classList.add('hidden');
+        document.getElementById('viewHistory').classList.add('hidden');
+        document.getElementById('btnTabCurrent').classList.remove('active');
+        document.getElementById('btnTabHistory').classList.remove('active');
+
+        if(tab === 'current') {
+            document.getElementById('viewCurrent').classList.remove('hidden');
+            document.getElementById('btnTabCurrent').classList.add('active');
+        } else {
+            document.getElementById('viewHistory').classList.remove('hidden');
+            document.getElementById('btnTabHistory').classList.add('active');
+            renderHistory();
+        }
+    }
+
+    function renderPeople() {
+        const container = document.getElementById('displayPeopleList');
+        container.innerHTML = currentProject.people.map(p => 
+            `<span class="person-tag">👤 ${p}</span>`
+        ).join('');
+
+        const cbContainer = document.getElementById('splitCheckboxes');
+        if (currentProject.people.length === 0) {
+            cbContainer.innerHTML = '<span style="color:#888; grid-column: 1/-1;">Add people above to select splits.</span>';
+        } else {
+            cbContainer.innerHTML = currentProject.people.map(p => `
+                <label class="checkbox-item">
+                    <input type="checkbox" value="${p}" checked> ${p}
+                </label>
+            `).join('');
+        }
+    }
+
+    function renderExpenses() {
+        const tbody = document.getElementById('expenseLog');
+        tbody.innerHTML = currentProject.expenses.map((e, index) => `
+            <tr>
+                <td>
+                    <div style="font-weight:600">${e.name}</div>
+                    <div style="font-size:0.8rem; color:#666;">${e.date || ''}</div>
+                </td>
+                <td class="amount">$${e.totalAmount.toFixed(2)}</td>
+                <td style="font-size:0.85rem;">
+                    <div>$${e.splitAmount.toFixed(2)} / person</div>
+                    <div style="color:#666;">(${e.involved.join(', ')})</div>
+                </td>
+                <td>
+                    <button style="padding:5px 10px; font-size:0.8rem; width:auto; background:#ef4444;" onclick="removeExpense(${index})">Del</button>
+                </td>
+            </tr>
+        `).join('');
+
+        calculateSummary();
+    }
+
+    function calculateSummary() {
+        let totalCost = 0;
+        let personTotals = {};
+        currentProject.people.forEach(p => personTotals[p] = 0);
+
+        currentProject.expenses.forEach(item => {
+            totalCost += item.totalAmount;
+            item.involved.forEach(p => {
+                if (personTotals[p] !== undefined) {
+                    personTotals[p] += item.splitAmount;
+                }
+            });
+        });
+
+        document.getElementById('grandTotal').innerText = `$${totalCost.toFixed(2)}`;
+
+        const container = document.getElementById('personSummary');
+        container.innerHTML = currentProject.people.map(p => `
+            <div class="summary-card">
+                <div style="font-weight:bold;">${p}</div>
+                <div style="font-size:0.8rem; margin:5px 0;">Pays</div>
+                <div class="amount" style="color:var(--primary); font-size:1.2rem;">$${(personTotals[p] || 0).toFixed(2)}</div>
+            </div>
+        `).join('');
+    }
+
+    // ================= ACTIONS =================
 
     function addPerson() {
         const input = document.getElementById('newPersonName');
         const name = input.value.trim();
-
-        if (name && !people.includes(name)) {
-            people.push(name);
+        if (name && !currentProject.people.includes(name)) {
+            currentProject.people.push(name);
             input.value = '';
-            renderPeopleList();
-            renderCheckboxes();
-            calculateSummary(); // Re-calc in case added late (though usually done first)
-        } else if (people.includes(name)) {
-            alert("Name already exists!");
+            renderPeople();
+            calculateSummary();
         }
     }
-
-    function renderPeopleList() {
-        const container = document.getElementById('displayPeopleList');
-        container.innerHTML = people.map(p => `<span class="person-tag">👤 ${p}</span>`).join('');
-    }
-
-    function renderCheckboxes() {
-        const container = document.getElementById('splitCheckboxes');
-        if (people.length === 0) {
-            container.innerHTML = '<p style="color: #666; font-size: 0.9rem;">Add people in step 1 to see options here.</p>';
-            return;
-        }
-
-        container.innerHTML = people.map((p, index) => `
-            <label class="checkbox-item">
-                <input type="checkbox" value="${p}" checked>
-                ${p}
-            </label>
-        `).join('');
-    }
-
-    // --- SECTION 2 LOGIC: EXPENSES ---
 
     function addExpense() {
         const nameInput = document.getElementById('itemName');
@@ -250,92 +411,227 @@
 
         const name = nameInput.value.trim();
         const amount = parseFloat(amountInput.value);
+
+        if (!name || isNaN(amount) || amount <= 0) return alert("Invalid Name or Amount");
+        if (checkboxes.length === 0) return alert("Select at least one person.");
+
+        const involved = Array.from(checkboxes).map(cb => cb.value);
         
-        // Validation
-        if (!name) return alert("Please enter an item name.");
-        if (isNaN(amount) || amount <= 0) return alert("Please enter a valid amount.");
-        if (checkboxes.length === 0) return alert("Please select at least one person to split this with.");
-
-        const involvedPeople = Array.from(checkboxes).map(cb => cb.value);
-
-        const expense = {
-            id: Date.now(),
-            name: name,
+        currentProject.expenses.push({
+            name,
             totalAmount: amount,
-            involved: involvedPeople,
-            splitAmount: amount / involvedPeople.length
-        };
-
-        expenses.push(expense);
-
-        // Clear inputs
-        nameInput.value = '';
-        amountInput.value = '';
-        // Optional: Reset checkboxes to all checked? 
-        // checkboxes.forEach(cb => cb.checked = true); 
-
-        renderExpenseLog();
-        calculateSummary();
-    }
-
-    // --- SECTION 3 LOGIC: CALCULATION & OUTPUT ---
-
-    function renderExpenseLog() {
-        const tbody = document.getElementById('expenseLog');
-        tbody.innerHTML = expenses.map(e => `
-            <tr>
-                <td>${e.name}</td>
-                <td class="amount">$${e.totalAmount.toFixed(2)}</td>
-                <td>${e.involved.length} people (${e.involved.join(', ')})</td>
-                <td class="amount">$${e.splitAmount.toFixed(2)}</td>
-            </tr>
-        `).join('');
-    }
-
-    function calculateSummary() {
-        // 1. Calculate Grand Total
-        const totalCost = expenses.reduce((sum, item) => sum + item.totalAmount, 0);
-        document.getElementById('grandTotal').innerText = `$${totalCost.toFixed(2)}`;
-
-        // 2. Calculate Per Person
-        const personTotals = {};
-        
-        // Initialize 0 for everyone
-        people.forEach(p => personTotals[p] = 0);
-
-        // Sum up shares
-        expenses.forEach(item => {
-            item.involved.forEach(person => {
-                if (personTotals[person] !== undefined) {
-                    personTotals[person] += item.splitAmount;
-                }
-            });
+            involved,
+            splitAmount: amount / involved.length,
+            date: new Date().toLocaleDateString()
         });
 
-        // Render Cards
-        const container = document.getElementById('personSummary');
-        container.innerHTML = people.map(p => {
-            const amount = personTotals[p] || 0;
+        nameInput.value = '';
+        amountInput.value = '';
+        renderExpenses();
+    }
+
+    function removeExpense(index) {
+        currentProject.expenses.splice(index, 1);
+        renderExpenses();
+    }
+
+    function resetCurrent(confirmMsg) {
+        if(confirmMsg && !confirm("Clear all current project data?")) return;
+        currentProject = { name: "", people: [], expenses: [] };
+        document.getElementById('projectName').value = "";
+        document.getElementById('displayPeopleList').innerHTML = "";
+        document.getElementById('splitCheckboxes').innerHTML = "";
+        document.getElementById('expenseLog').innerHTML = "";
+        document.getElementById('personSummary').innerHTML = "";
+        document.getElementById('grandTotal').innerText = "$0.00";
+    }
+
+    function archiveProject() {
+        const pName = document.getElementById('projectName').value || "Untitled Project " + new Date().toLocaleDateString();
+        
+        if (currentProject.expenses.length === 0) return alert("Nothing to save.");
+
+        currentProject.name = pName;
+        currentProject.archivedAt = new Date().toLocaleString();
+        
+        projectHistory.unshift(currentProject); // Add to top
+        localStorage.setItem('expenseSplitterHistory', JSON.stringify(projectHistory));
+        
+        alert("Project Saved to History!");
+        resetCurrent(false);
+        switchTab('history');
+    }
+
+    // ================= CSV LOGIC (MOZE SPECIFIC) =================
+
+    function parseCSVLine(text) {
+        // Robust CSV line parser handles quotes with newlines
+        let result = [];
+        let cell = '';
+        let insideQuote = false;
+
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const nextChar = text[i+1];
+
+            if (char === '"' && insideQuote && nextChar === '"') {
+                // Escaped quote inside quote
+                cell += '"';
+                i++; 
+            } else if (char === '"') {
+                insideQuote = !insideQuote;
+            } else if (char === ',' && !insideQuote) {
+                result.push(cell);
+                cell = '';
+            } else if ((char === '\r' || char === '\n') && !insideQuote) {
+                // End of row
+                result.push(cell);
+                return { row: result, endIndex: i };
+            } else {
+                cell += char;
+            }
+        }
+        result.push(cell);
+        return { row: result, endIndex: text.length };
+    }
+
+    function parseCSV(text) {
+        const rows = [];
+        let cursor = 0;
+        
+        // Remove Byte Order Mark if present
+        if (text.charCodeAt(0) === 0xFEFF) {
+            text = text.slice(1);
+        }
+
+        while(cursor < text.length) {
+            const { row, endIndex } = parseCSVLine(text.slice(cursor));
+            if(row.length > 1) rows.push(row); // skip empty lines
+            cursor += endIndex + 1;
+            // Handle CRLF
+            if (text[cursor] === '\n' || text[cursor] === '\r') cursor++; 
+        }
+        return rows;
+    }
+
+    function processCSV() {
+        const fileInput = document.getElementById('csvInput');
+        const file = fileInput.files[0];
+
+        if (!file) return alert("Please select a CSV file first.");
+        if (currentProject.people.length === 0) return alert("Please add at least one person (Section 1) before importing, so I know who to split the costs with.");
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const text = e.target.result;
+            const rows = parseCSV(text);
+
+            if (rows.length < 2) return alert("CSV appears empty or invalid.");
+
+            // Find Headers
+            const headers = rows[0].map(h => h.trim());
+            
+            // Map Columns based on MOZE format
+            // Look for '金额' (Amount) and '名称' (Name) or '描述' (Description)
+            const idxAmount = headers.indexOf('金额');
+            const idxName = headers.indexOf('名称');
+            const idxDesc = headers.indexOf('描述');
+            const idxDate = headers.indexOf('日期');
+
+            if (idxAmount === -1) {
+                return alert("Could not find '金额' (Amount) column. Is this a MOZE export?");
+            }
+
+            let importCount = 0;
+
+            // Start from index 1 (skip header)
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (row.length < idxAmount) continue;
+
+                const rawAmt = parseFloat(row[idxAmount]);
+                
+                // Only process expenditures (Negative numbers in MOZE)
+                if (!isNaN(rawAmt) && rawAmt < 0) {
+                    const amount = Math.abs(rawAmt);
+                    
+                    // Name logic: Use Name. If empty, use Description. If empty, use "Unknown Item"
+                    let name = row[idxName] ? row[idxName].trim() : "";
+                    if (!name && idxDesc !== -1) name = row[idxDesc] ? row[idxDesc].trim() : "";
+                    // Clean up name (remove newlines from description if present)
+                    name = name.replace(/[\r\n]+/g, ' ').substring(0, 50);
+                    if (!name) name = "Imported Item";
+
+                    const date = idxDate !== -1 ? row[idxDate] : "";
+
+                    // Add to project
+                    currentProject.expenses.push({
+                        name: name,
+                        totalAmount: amount,
+                        involved: [...currentProject.people], // Default: Split with EVERYONE
+                        splitAmount: amount / currentProject.people.length,
+                        date: date
+                    });
+                    importCount++;
+                }
+            }
+
+            alert(`Successfully imported ${importCount} expenses!`);
+            fileInput.value = ''; // Reset
+            renderExpenses();
+        };
+        reader.readAsText(file);
+    }
+
+    // ================= HISTORY LOGIC =================
+    
+    function renderHistory() {
+        const container = document.getElementById('historyList');
+        if (projectHistory.length === 0) {
+            container.innerHTML = '<p>No saved projects yet.</p>';
+            return;
+        }
+
+        container.innerHTML = projectHistory.map((proj, idx) => {
+            const total = proj.expenses.reduce((sum, e) => sum + e.totalAmount, 0);
             return `
-                <div class="summary-card">
-                    <div style="font-weight:bold; margin-bottom:5px;">${p}</div>
-                    <div style="font-size:0.9rem; color:#666;">Needs to pay</div>
-                    <div class="amount" style="font-size:1.2rem; color:var(--primary);">$${amount.toFixed(2)}</div>
+                <div class="history-item">
+                    <div>
+                        <div style="font-weight:bold; font-size:1.1rem;">${proj.name}</div>
+                        <div class="history-details">Saved: ${proj.archivedAt} | ${proj.people.length} People</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div class="amount" style="font-size:1.2rem; color:var(--primary);">$${total.toFixed(2)}</div>
+                        <button style="width:auto; padding:5px 10px; margin-top:5px; font-size:0.8rem;" onclick="loadProjectFromHistory(${idx})">Load</button>
+                    </div>
                 </div>
             `;
         }).join('');
     }
 
-    function resetAll() {
-        if(confirm("Are you sure you want to clear all data?")) {
-            people = [];
-            expenses = [];
-            document.getElementById('displayPeopleList').innerHTML = '';
-            renderCheckboxes();
-            renderExpenseLog();
-            calculateSummary();
+    function clearHistory() {
+        if(confirm("Delete all history? This cannot be undone.")) {
+            localStorage.removeItem('expenseSplitterHistory');
+            projectHistory = [];
+            renderHistory();
         }
     }
+
+    function loadProjectFromHistory(index) {
+        if(currentProject.expenses.length > 0) {
+            if(!confirm("Loading a project will overwrite current unsaved data. Continue?")) return;
+        }
+        
+        // Deep copy to avoid reference issues
+        currentProject = JSON.parse(JSON.stringify(projectHistory[index]));
+        
+        // Switch view
+        document.getElementById('projectName').value = currentProject.name;
+        switchTab('current');
+        renderPeople();
+        renderExpenses();
+    }
+
 </script>
 
 </body>
