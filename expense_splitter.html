@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FairShare - Expense Splitter</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f3f4f6;
+            --card: #ffffff;
+            --text: #1f2937;
+            --border: #e5e7eb;
+            --success: #10b981;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            display: grid;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        h1, h2, h3 { margin-top: 0; }
+        h1 { color: var(--primary); text-align: center; }
+
+        /* Form Elements */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            width: 100%;
+        }
+        button:hover { opacity: 0.9; }
+        button.secondary { background-color: #6b7280; margin-top: 10px;}
+
+        /* People Tags */
+        .people-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .person-tag {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Checkbox Grid */
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .checkbox-item:hover { background-color: #f9fafb; }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); }
+        th { background-color: #f8fafc; }
+        
+        .amount { font-family: 'Courier New', monospace; font-weight: bold; }
+        
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .summary-card {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        .total-project {
+            background: #ecfdf5;
+            border-color: #6ee7b7;
+            text-align: center;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>FairShare Splitter</h1>
+
+    <!-- SECTION 1: ADD PEOPLE -->
+    <div class="card" id="setupSection">
+        <h2>1. Who is involved?</h2>
+        <div class="form-group">
+            <input type="text" id="newPersonName" placeholder="Enter person's name (e.g., Alice)">
+        </div>
+        <button onclick="addPerson()">Add Person</button>
+        <div class="people-list" id="displayPeopleList" style="margin-top: 15px;"></div>
+    </div>
+
+    <!-- SECTION 2: ADD EXPENSE -->
+    <div class="card">
+        <h2>2. Add Expense</h2>
+        <div class="form-group">
+            <label>Item Name</label>
+            <input type="text" id="itemName" placeholder="e.g., Pizza Dinner">
+        </div>
+        <div class="form-group">
+            <label>Total Amount ($)</label>
+            <input type="number" id="itemAmount" placeholder="0.00" step="0.01">
+        </div>
+        
+        <div class="form-group">
+            <label>Split with whom? (Select below)</label>
+            <div id="splitCheckboxes" class="checkbox-grid">
+                <!-- Checkboxes will appear here dynamically -->
+                <p style="color: #666; font-size: 0.9rem;">Add people in step 1 to see options here.</p>
+            </div>
+        </div>
+
+        <button onclick="addExpense()">Add Expense</button>
+    </div>
+
+    <!-- SECTION 3: SUMMARY -->
+    <div class="card">
+        <h2>3. Summary & Breakdown</h2>
+        
+        <div class="total-project">
+            <strong>Total Project Cost: </strong>
+            <span id="grandTotal" class="amount">$0.00</span>
+        </div>
+
+        <h3>Cost Per Person</h3>
+        <div id="personSummary" class="summary-grid">
+            <!-- Person totals go here -->
+        </div>
+
+        <h3>Expense Log</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Cost</th>
+                    <th>Shared By</th>
+                    <th>Cost/Head</th>
+                </tr>
+            </thead>
+            <tbody id="expenseLog">
+            </tbody>
+        </table>
+        
+        <button class="secondary" onclick="resetAll()">Reset All</button>
+    </div>
+</div>
+
+<script>
+    // State
+    let people = [];
+    let expenses = [];
+
+    // --- SECTION 1 LOGIC: PEOPLE ---
+
+    function addPerson() {
+        const input = document.getElementById('newPersonName');
+        const name = input.value.trim();
+
+        if (name && !people.includes(name)) {
+            people.push(name);
+            input.value = '';
+            renderPeopleList();
+            renderCheckboxes();
+            calculateSummary(); // Re-calc in case added late (though usually done first)
+        } else if (people.includes(name)) {
+            alert("Name already exists!");
+        }
+    }
+
+    function renderPeopleList() {
+        const container = document.getElementById('displayPeopleList');
+        container.innerHTML = people.map(p => `<span class="person-tag">👤 ${p}</span>`).join('');
+    }
+
+    function renderCheckboxes() {
+        const container = document.getElementById('splitCheckboxes');
+        if (people.length === 0) {
+            container.innerHTML = '<p style="color: #666; font-size: 0.9rem;">Add people in step 1 to see options here.</p>';
+            return;
+        }
+
+        container.innerHTML = people.map((p, index) => `
+            <label class="checkbox-item">
+                <input type="checkbox" value="${p}" checked>
+                ${p}
+            </label>
+        `).join('');
+    }
+
+    // --- SECTION 2 LOGIC: EXPENSES ---
+
+    function addExpense() {
+        const nameInput = document.getElementById('itemName');
+        const amountInput = document.getElementById('itemAmount');
+        const checkboxes = document.querySelectorAll('#splitCheckboxes input[type="checkbox"]:checked');
+
+        const name = nameInput.value.trim();
+        const amount = parseFloat(amountInput.value);
+        
+        // Validation
+        if (!name) return alert("Please enter an item name.");
+        if (isNaN(amount) || amount <= 0) return alert("Please enter a valid amount.");
+        if (checkboxes.length === 0) return alert("Please select at least one person to split this with.");
+
+        const involvedPeople = Array.from(checkboxes).map(cb => cb.value);
+
+        const expense = {
+            id: Date.now(),
+            name: name,
+            totalAmount: amount,
+            involved: involvedPeople,
+            splitAmount: amount / involvedPeople.length
+        };
+
+        expenses.push(expense);
+
+        // Clear inputs
+        nameInput.value = '';
+        amountInput.value = '';
+        // Optional: Reset checkboxes to all checked? 
+        // checkboxes.forEach(cb => cb.checked = true); 
+
+        renderExpenseLog();
+        calculateSummary();
+    }
+
+    // --- SECTION 3 LOGIC: CALCULATION & OUTPUT ---
+
+    function renderExpenseLog() {
+        const tbody = document.getElementById('expenseLog');
+        tbody.innerHTML = expenses.map(e => `
+            <tr>
+                <td>${e.name}</td>
+                <td class="amount">$${e.totalAmount.toFixed(2)}</td>
+                <td>${e.involved.length} people (${e.involved.join(', ')})</td>
+                <td class="amount">$${e.splitAmount.toFixed(2)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function calculateSummary() {
+        // 1. Calculate Grand Total
+        const totalCost = expenses.reduce((sum, item) => sum + item.totalAmount, 0);
+        document.getElementById('grandTotal').innerText = `$${totalCost.toFixed(2)}`;
+
+        // 2. Calculate Per Person
+        const personTotals = {};
+        
+        // Initialize 0 for everyone
+        people.forEach(p => personTotals[p] = 0);
+
+        // Sum up shares
+        expenses.forEach(item => {
+            item.involved.forEach(person => {
+                if (personTotals[person] !== undefined) {
+                    personTotals[person] += item.splitAmount;
+                }
+            });
+        });
+
+        // Render Cards
+        const container = document.getElementById('personSummary');
+        container.innerHTML = people.map(p => {
+            const amount = personTotals[p] || 0;
+            return `
+                <div class="summary-card">
+                    <div style="font-weight:bold; margin-bottom:5px;">${p}</div>
+                    <div style="font-size:0.9rem; color:#666;">Needs to pay</div>
+                    <div class="amount" style="font-size:1.2rem; color:var(--primary);">$${amount.toFixed(2)}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function resetAll() {
+        if(confirm("Are you sure you want to clear all data?")) {
+            people = [];
+            expenses = [];
+            document.getElementById('displayPeopleList').innerHTML = '';
+            renderCheckboxes();
+            renderExpenseLog();
+            calculateSummary();
+        }
+    }
+</script>
+
+</body>
+</html>
