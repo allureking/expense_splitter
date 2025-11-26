@@ -14,6 +14,7 @@
             --border: #e5e7eb;
             --success: #10b981;
             --danger: #ef4444;
+            --warning: #f59e0b;
         }
 
         body {
@@ -62,7 +63,7 @@
             margin-bottom: 20px;
         }
 
-        .hidden { display: none; }
+        .hidden { display: none !important; }
 
         h1, h2, h3 { margin-top: 0; }
         h1 { color: var(--primary); text-align: center; font-size: 1.8rem; }
@@ -96,6 +97,8 @@
         button.secondary { background-color: #6b7280; margin-top: 10px;}
         button.danger { background-color: var(--danger); margin-top: 10px;}
         button.success { background-color: var(--success); }
+        button.edit-btn { background-color: var(--warning); color: #fff; width: auto; padding: 6px 12px; font-size: 0.85rem; margin-right: 5px;}
+        button.del-btn { background-color: var(--danger); width: auto; padding: 6px 12px; font-size: 0.85rem;}
 
         /* People Tags */
         .people-list {
@@ -141,8 +144,6 @@
         th { background-color: #f8fafc; color: #64748b; font-weight: 600; }
         
         .amount { font-family: 'Courier New', monospace; font-weight: bold; }
-        .negative { color: var(--danger); }
-        .positive { color: var(--success); }
         
         /* Summary Cards */
         .summary-grid {
@@ -188,6 +189,35 @@
             text-align: center;
             margin-bottom: 20px;
             background: #f8fafc;
+        }
+
+        /* MODAL STYLES */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
         }
     </style>
 </head>
@@ -270,7 +300,7 @@
                             <th>Item</th>
                             <th>Cost</th>
                             <th>Split Details</th>
-                            <th>Action</th>
+                            <th style="min-width: 120px;">Action</th>
                         </tr>
                     </thead>
                     <tbody id="expenseLog"></tbody>
@@ -297,6 +327,35 @@
 
 </div>
 
+<!-- ================= EDIT MODAL ================= -->
+<div id="editModal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <h3>Edit Expense</h3>
+        
+        <div class="form-group">
+            <label>Item Name</label>
+            <input type="text" id="editItemName">
+        </div>
+        
+        <div class="form-group">
+            <label>Amount</label>
+            <input type="number" id="editItemAmount" step="0.01">
+        </div>
+
+        <div class="form-group">
+            <label>Split between:</label>
+            <div id="editSplitCheckboxes" class="checkbox-grid">
+                <!-- Checkboxes populated by JS -->
+            </div>
+        </div>
+
+        <div class="modal-buttons">
+            <button class="secondary" onclick="closeEditModal()">Cancel</button>
+            <button class="success" onclick="saveEdit()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
 <script>
     // ================= STATE MANAGEMENT =================
     let currentProject = {
@@ -304,6 +363,9 @@
         people: [],
         expenses: []
     };
+    
+    // Track which item is being edited
+    let editingIndex = -1;
 
     let projectHistory = JSON.parse(localStorage.getItem('expenseSplitterHistory')) || [];
 
@@ -354,10 +416,11 @@
                 <td class="amount">$${e.totalAmount.toFixed(2)}</td>
                 <td style="font-size:0.85rem;">
                     <div>$${e.splitAmount.toFixed(2)} / person</div>
-                    <div style="color:#666;">(${e.involved.join(', ')})</div>
+                    <div style="color:#666;">(${e.involved.length} people: ${e.involved.join(', ')})</div>
                 </td>
                 <td>
-                    <button style="padding:5px 10px; font-size:0.8rem; width:auto; background:#ef4444;" onclick="removeExpense(${index})">Del</button>
+                    <button class="edit-btn" onclick="openEditModal(${index})">Edit</button>
+                    <button class="del-btn" onclick="removeExpense(${index})">Del</button>
                 </td>
             </tr>
         `).join('');
@@ -431,8 +494,10 @@
     }
 
     function removeExpense(index) {
-        currentProject.expenses.splice(index, 1);
-        renderExpenses();
+        if(confirm("Delete this expense?")) {
+            currentProject.expenses.splice(index, 1);
+            renderExpenses();
+        }
     }
 
     function resetCurrent(confirmMsg) {
@@ -462,10 +527,62 @@
         switchTab('history');
     }
 
+    // ================= EDIT MODAL LOGIC =================
+
+    function openEditModal(index) {
+        editingIndex = index;
+        const item = currentProject.expenses[index];
+
+        // Fill Data
+        document.getElementById('editItemName').value = item.name;
+        document.getElementById('editItemAmount').value = item.totalAmount;
+
+        // Generate Checkboxes for all people in project
+        const container = document.getElementById('editSplitCheckboxes');
+        container.innerHTML = currentProject.people.map(p => {
+            // Check if this person is involved in the specific item
+            const isChecked = item.involved.includes(p) ? 'checked' : '';
+            return `
+                <label class="checkbox-item">
+                    <input type="checkbox" value="${p}" ${isChecked}> ${p}
+                </label>
+            `;
+        }).join('');
+
+        // Show Modal
+        document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.add('hidden');
+        editingIndex = -1;
+    }
+
+    function saveEdit() {
+        if (editingIndex === -1) return;
+
+        const name = document.getElementById('editItemName').value.trim();
+        const amount = parseFloat(document.getElementById('editItemAmount').value);
+        const checkboxes = document.querySelectorAll('#editSplitCheckboxes input[type="checkbox"]:checked');
+
+        if (!name || isNaN(amount) || amount <= 0) return alert("Invalid Name or Amount");
+        if (checkboxes.length === 0) return alert("Select at least one person.");
+
+        const involved = Array.from(checkboxes).map(cb => cb.value);
+
+        // Update Data
+        currentProject.expenses[editingIndex].name = name;
+        currentProject.expenses[editingIndex].totalAmount = amount;
+        currentProject.expenses[editingIndex].involved = involved;
+        currentProject.expenses[editingIndex].splitAmount = amount / involved.length;
+
+        renderExpenses();
+        closeEditModal();
+    }
+
     // ================= CSV LOGIC (MOZE SPECIFIC) =================
 
     function parseCSVLine(text) {
-        // Robust CSV line parser handles quotes with newlines
         let result = [];
         let cell = '';
         let insideQuote = false;
@@ -475,7 +592,6 @@
             const nextChar = text[i+1];
 
             if (char === '"' && insideQuote && nextChar === '"') {
-                // Escaped quote inside quote
                 cell += '"';
                 i++; 
             } else if (char === '"') {
@@ -484,7 +600,6 @@
                 result.push(cell);
                 cell = '';
             } else if ((char === '\r' || char === '\n') && !insideQuote) {
-                // End of row
                 result.push(cell);
                 return { row: result, endIndex: i };
             } else {
@@ -499,16 +614,12 @@
         const rows = [];
         let cursor = 0;
         
-        // Remove Byte Order Mark if present
-        if (text.charCodeAt(0) === 0xFEFF) {
-            text = text.slice(1);
-        }
+        if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
 
         while(cursor < text.length) {
             const { row, endIndex } = parseCSVLine(text.slice(cursor));
-            if(row.length > 1) rows.push(row); // skip empty lines
+            if(row.length > 1) rows.push(row); 
             cursor += endIndex + 1;
-            // Handle CRLF
             if (text[cursor] === '\n' || text[cursor] === '\r') cursor++; 
         }
         return rows;
@@ -519,7 +630,7 @@
         const file = fileInput.files[0];
 
         if (!file) return alert("Please select a CSV file first.");
-        if (currentProject.people.length === 0) return alert("Please add at least one person (Section 1) before importing, so I know who to split the costs with.");
+        if (currentProject.people.length === 0) return alert("Please add at least one person (Section 1) before importing.");
 
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -528,47 +639,39 @@
 
             if (rows.length < 2) return alert("CSV appears empty or invalid.");
 
-            // Find Headers
             const headers = rows[0].map(h => h.trim());
             
-            // Map Columns based on MOZE format
-            // Look for '金额' (Amount) and '名称' (Name) or '描述' (Description)
             const idxAmount = headers.indexOf('金额');
             const idxName = headers.indexOf('名称');
             const idxDesc = headers.indexOf('描述');
             const idxDate = headers.indexOf('日期');
 
             if (idxAmount === -1) {
-                return alert("Could not find '金额' (Amount) column. Is this a MOZE export?");
+                return alert("Could not find '金额' (Amount) column.");
             }
 
             let importCount = 0;
 
-            // Start from index 1 (skip header)
             for (let i = 1; i < rows.length; i++) {
                 const row = rows[i];
                 if (row.length < idxAmount) continue;
 
                 const rawAmt = parseFloat(row[idxAmount]);
                 
-                // Only process expenditures (Negative numbers in MOZE)
                 if (!isNaN(rawAmt) && rawAmt < 0) {
                     const amount = Math.abs(rawAmt);
                     
-                    // Name logic: Use Name. If empty, use Description. If empty, use "Unknown Item"
                     let name = row[idxName] ? row[idxName].trim() : "";
                     if (!name && idxDesc !== -1) name = row[idxDesc] ? row[idxDesc].trim() : "";
-                    // Clean up name (remove newlines from description if present)
                     name = name.replace(/[\r\n]+/g, ' ').substring(0, 50);
                     if (!name) name = "Imported Item";
 
                     const date = idxDate !== -1 ? row[idxDate] : "";
 
-                    // Add to project
                     currentProject.expenses.push({
                         name: name,
                         totalAmount: amount,
-                        involved: [...currentProject.people], // Default: Split with EVERYONE
+                        involved: [...currentProject.people], 
                         splitAmount: amount / currentProject.people.length,
                         date: date
                     });
@@ -576,8 +679,8 @@
                 }
             }
 
-            alert(`Successfully imported ${importCount} expenses!`);
-            fileInput.value = ''; // Reset
+            alert(`Successfully imported ${importCount} expenses! You can now Edit specific items to adjust who pays.`);
+            fileInput.value = ''; 
             renderExpenses();
         };
         reader.readAsText(file);
@@ -622,10 +725,8 @@
             if(!confirm("Loading a project will overwrite current unsaved data. Continue?")) return;
         }
         
-        // Deep copy to avoid reference issues
         currentProject = JSON.parse(JSON.stringify(projectHistory[index]));
         
-        // Switch view
         document.getElementById('projectName').value = currentProject.name;
         switchTab('current');
         renderPeople();
