@@ -49,39 +49,53 @@ function parseCSV(text) {
 }
 
 // --- Expense Fingerprint (for deduplication) ---
+// Uses amount + date + time + merchant — fields the user won't modify after import
 
-function expenseFingerprint(name, amount, date) {
-    // Normalize: trim name, round amount to 2 decimals, normalize date format
-    const n = (name || '').trim().toLowerCase();
+function csvFingerprint(amount, date, time, merchant) {
     const a = Math.abs(parseFloat(amount) || 0).toFixed(2);
     const d = (date || '').trim();
-    return `${n}|${a}|${d}`;
+    const t = (time || '').trim();
+    const m = (merchant || '').trim().toLowerCase();
+    return `${a}|${d}|${t}|${m}`;
 }
+
+// --- Currency mapping from MOZE ---
+const MOZE_CURRENCY_MAP = {
+    'CNY': '¥', 'USD': '$', 'EUR': '€', 'GBP': '£',
+    'KRW': '₩', 'JPY': 'JP¥', 'TWD': 'NT$', 'HKD': 'HK$',
+    'CAD': 'CA$', 'AUD': 'AU$', 'SGD': 'S$', 'THB': '฿',
+};
 
 // --- MOZE CSV Import (with smart deduplication) ---
 
 function importMOZECSV(csvText, people, existingExpenses) {
     const rows = parseCSV(csvText);
-    if (rows.length < 2) return { expenses: [], count: 0, skipped: 0 };
+    if (rows.length < 2) return { expenses: [], count: 0, skipped: 0, currency: null };
 
     const headers = rows[0].map(h => h.trim());
     const idxAmount = headers.indexOf('金额');
     const idxName = headers.indexOf('名称');
     const idxDesc = headers.indexOf('描述');
     const idxDate = headers.indexOf('日期');
+    const idxTime = headers.indexOf('时间');
+    const idxMerchant = headers.indexOf('商家');
+    const idxCurrency = headers.indexOf('币种');
 
     if (idxAmount === -1) {
         throw new Error("Cannot find '金额' (Amount) column in CSV");
     }
 
-    // Build fingerprint set from existing expenses
+    // Build fingerprint set from existing expenses (use stored _csvFingerprint)
     const existingFingerprints = new Set();
     (existingExpenses || []).forEach(exp => {
-        existingFingerprints.add(expenseFingerprint(exp.name, exp.amount, exp.date));
+        if (exp._csvFingerprint) {
+            existingFingerprints.add(exp._csvFingerprint);
+        }
     });
 
     const expenses = [];
     let skipped = 0;
+    let detectedCurrency = null;
 
     for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
@@ -92,13 +106,25 @@ function importMOZECSV(csvText, people, existingExpenses) {
 
         const amount = Math.abs(rawAmt);
         let name = (row[idxName] || '').trim();
-        if (!name && idxDesc !== -1) name = (row[idxDesc] || '').trim();
+        const merchant = idxMerchant !== -1 ? (row[idxMerchant] || '').trim() : '';
+        const desc = idxDesc !== -1 ? (row[idxDesc] || '').trim() : '';
+        if (!name && merchant) name = merchant;
+        if (!name && desc) name = desc;
         name = name.replace(/[\r\n]+/g, ' ').substring(0, 50) || t('itemNamePh');
 
         const date = idxDate !== -1 ? (row[idxDate] || '').trim() : '';
+        const time = idxTime !== -1 ? (row[idxTime] || '').trim() : '';
 
-        // Deduplication: skip if this expense already exists
-        const fp = expenseFingerprint(name, amount, date);
+        // Auto-detect currency from first expense row
+        if (!detectedCurrency && idxCurrency !== -1) {
+            const currCode = (row[idxCurrency] || '').trim().toUpperCase();
+            if (MOZE_CURRENCY_MAP[currCode]) {
+                detectedCurrency = MOZE_CURRENCY_MAP[currCode];
+            }
+        }
+
+        // Deduplication: fingerprint based on immutable CSV fields (not name)
+        const fp = csvFingerprint(amount, date, time, merchant);
         if (existingFingerprints.has(fp)) {
             skipped++;
             continue;
@@ -116,11 +142,12 @@ function importMOZECSV(csvText, people, existingExpenses) {
             payer: people[0] || '',
             date: date || new Date().toISOString().slice(0, 10),
             splitType: 'equal',
-            splits
+            splits,
+            _csvFingerprint: fp
         });
     }
 
-    return { expenses, count: expenses.length, skipped };
+    return { expenses, count: expenses.length, skipped, currency: detectedCurrency };
 }
 
 // --- MOZE CSV Export ---

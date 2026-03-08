@@ -151,6 +151,9 @@ function renderExpenses() {
     container.innerHTML = project.expenses.map(exp => {
         const involvedCount = exp.splits ? Object.keys(exp.splits).filter(k => exp.splits[k] > 0).length : 0;
         const isExpanded = editingExpenseId === exp.id;
+        const splitLabel = exp.splitType === 'equal' ? t('splitEqual')
+                         : exp.splitType === 'ratio' ? t('splitRatio')
+                         : t('splitCustom');
 
         return `
             <div class="expense-card ${isExpanded ? 'expanded' : ''}" data-id="${exp.id}">
@@ -160,7 +163,7 @@ function renderExpenses() {
                         <div class="expense-meta">
                             <span>${exp.payer ? t('paidLabel') + ': ' + escapeHtml(exp.payer) : ''}</span>
                             <span>${exp.date || ''}</span>
-                            <span>${involvedCount}/${project.people.length}</span>
+                            <span class="split-badge">${splitLabel} · ${involvedCount}/${project.people.length}</span>
                         </div>
                     </div>
                     <div class="expense-amount">${c}${exp.amount.toFixed(2)}</div>
@@ -173,6 +176,7 @@ function renderExpenses() {
                             \u{2715}
                         </button>
                     </div>
+                    <div class="expand-chevron">${isExpanded ? '\u25B2' : '\u25BC'}</div>
                 </div>
                 <div class="expense-detail">
                     ${renderExpenseDetail(exp)}
@@ -473,6 +477,16 @@ function togglePersonSplit(expId, person, checked) {
     if (!exp) return;
 
     if (!exp.splits) exp.splits = {};
+
+    // Prevent unchecking the last person (at least 1 must be included)
+    if (!checked && (exp.splitType === 'equal' || exp.splitType === 'ratio')) {
+        const currentlyIncluded = project.people.filter(p => (exp.splits[p] || 0) > 0);
+        if (currentlyIncluded.length <= 1 && currentlyIncluded.includes(person)) {
+            showToast(currentLang === 'cn' ? '至少需要一人参与分摊' : 'At least one person must be included', 'error');
+            renderExpenses(); // re-render to reset checkbox
+            return;
+        }
+    }
 
     if (checked) {
         if (exp.splitType === 'ratio') {
@@ -800,13 +814,20 @@ function handleCSVImport() {
     const reader = new FileReader();
     reader.onload = (e) => {
         try {
-            const { expenses, count, skipped } = importMOZECSV(
+            const { expenses, count, skipped, currency } = importMOZECSV(
                 e.target.result, project.people, project.expenses
             );
 
             // Set payer from the payer select if available
             const payer = document.getElementById('expensePayer')?.value || project.people[0];
             expenses.forEach(exp => { exp.payer = payer; });
+
+            // Auto-detect currency from CSV
+            if (currency && project.expenses.length === 0) {
+                project.currency = currency;
+                const currSelect = document.getElementById('currencySelect');
+                if (currSelect) currSelect.value = currency;
+            }
 
             project.expenses.push(...expenses);
             input.value = '';
@@ -816,6 +837,11 @@ function handleCSVImport() {
                 msg += currentLang === 'cn'
                     ? `\uff08${skipped} \u7B14\u91CD\u590D\u5DF2\u8DF3\u8FC7\uff09`
                     : ` (${skipped} duplicates skipped)`;
+            }
+            if (currency && project.expenses.length === count) {
+                msg += currentLang === 'cn'
+                    ? `\uff08\u5DF2\u8BC6\u522B\u5E01\u79CD: ${currency}\uff09`
+                    : ` (Currency: ${currency})`;
             }
             showToast(msg, count > 0 ? 'success' : 'info');
             render();

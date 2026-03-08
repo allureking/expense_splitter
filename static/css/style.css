@@ -232,6 +232,13 @@ body::before {
     gap: 6px;
 }
 
+.card-hint {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    font-style: italic;
+}
+
 .card-title::before {
     content: '';
     width: 3px;
@@ -487,6 +494,7 @@ input::placeholder { color: var(--text-tertiary); }
     gap: 12px;
     width: 100%;
     min-width: 0;
+    cursor: pointer;
 }
 
 .expense-info {
@@ -541,6 +549,29 @@ input::placeholder { color: var(--text-tertiary); }
 .expense-card:hover .expense-actions,
 .expense-card.expanded .expense-actions {
     opacity: 1;
+}
+
+/* Expand chevron */
+.expand-chevron {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    padding: 4px 2px;
+    display: flex;
+    align-items: center;
+    transition: transform var(--transition);
+}
+
+.expense-card.expanded .expand-chevron {
+    color: var(--primary);
+}
+
+/* Split badge */
+.split-badge {
+    background: var(--bg-subtle);
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 500;
 }
 
 /* Expense Detail (expanded) */

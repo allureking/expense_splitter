@@ -67,6 +67,7 @@ const I18N = {
         everyone: "Everyone",
         archive: "Archive Project",
         newProject: "New Project",
+        expenseHint: "Click an expense to adjust split participants and method",
     },
     cn: {
         appTitle: "SplitEase",
@@ -134,6 +135,7 @@ const I18N = {
         everyone: "全选",
         archive: "存档项目",
         newProject: "新建项目",
+        expenseHint: "点击消费项可调整参与分摊的成员和分摊方式",
     }
 };
 
