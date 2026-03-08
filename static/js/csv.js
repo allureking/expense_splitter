@@ -48,11 +48,21 @@ function parseCSV(text) {
     return rows;
 }
 
-// --- MOZE CSV Import ---
+// --- Expense Fingerprint (for deduplication) ---
 
-function importMOZECSV(csvText, people) {
+function expenseFingerprint(name, amount, date) {
+    // Normalize: trim name, round amount to 2 decimals, normalize date format
+    const n = (name || '').trim().toLowerCase();
+    const a = Math.abs(parseFloat(amount) || 0).toFixed(2);
+    const d = (date || '').trim();
+    return `${n}|${a}|${d}`;
+}
+
+// --- MOZE CSV Import (with smart deduplication) ---
+
+function importMOZECSV(csvText, people, existingExpenses) {
     const rows = parseCSV(csvText);
-    if (rows.length < 2) return { expenses: [], count: 0 };
+    if (rows.length < 2) return { expenses: [], count: 0, skipped: 0 };
 
     const headers = rows[0].map(h => h.trim());
     const idxAmount = headers.indexOf('金额');
@@ -64,7 +74,14 @@ function importMOZECSV(csvText, people) {
         throw new Error("Cannot find '金额' (Amount) column in CSV");
     }
 
+    // Build fingerprint set from existing expenses
+    const existingFingerprints = new Set();
+    (existingExpenses || []).forEach(exp => {
+        existingFingerprints.add(expenseFingerprint(exp.name, exp.amount, exp.date));
+    });
+
     const expenses = [];
+    let skipped = 0;
 
     for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
@@ -79,6 +96,14 @@ function importMOZECSV(csvText, people) {
         name = name.replace(/[\r\n]+/g, ' ').substring(0, 50) || t('itemNamePh');
 
         const date = idxDate !== -1 ? (row[idxDate] || '').trim() : '';
+
+        // Deduplication: skip if this expense already exists
+        const fp = expenseFingerprint(name, amount, date);
+        if (existingFingerprints.has(fp)) {
+            skipped++;
+            continue;
+        }
+        existingFingerprints.add(fp); // prevent duplicates within same CSV
 
         const splits = {};
         const share = amount / people.length;
@@ -95,7 +120,7 @@ function importMOZECSV(csvText, people) {
         });
     }
 
-    return { expenses, count: expenses.length };
+    return { expenses, count: expenses.length, skipped };
 }
 
 // --- MOZE CSV Export ---

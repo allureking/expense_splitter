@@ -800,7 +800,9 @@ function handleCSVImport() {
     const reader = new FileReader();
     reader.onload = (e) => {
         try {
-            const { expenses, count } = importMOZECSV(e.target.result, project.people);
+            const { expenses, count, skipped } = importMOZECSV(
+                e.target.result, project.people, project.expenses
+            );
 
             // Set payer from the payer select if available
             const payer = document.getElementById('expensePayer')?.value || project.people[0];
@@ -808,7 +810,14 @@ function handleCSVImport() {
 
             project.expenses.push(...expenses);
             input.value = '';
-            showToast(`${count} ${t('csvImported')}`, 'success');
+
+            let msg = `${count} ${t('csvImported')}`;
+            if (skipped > 0) {
+                msg += currentLang === 'cn'
+                    ? `\uff08${skipped} \u7B14\u91CD\u590D\u5DF2\u8DF3\u8FC7\uff09`
+                    : ` (${skipped} duplicates skipped)`;
+            }
+            showToast(msg, count > 0 ? 'success' : 'info');
             render();
             save();
         } catch (err) {
