@@ -1,5 +1,28 @@
 // ===== SplitEase - Main Application =====
 
+// --- Base URL (works behind reverse proxy sub-path) ---
+const BASE_URL = (() => {
+    // Detect if we're behind a sub-path (e.g. /split/)
+    const scripts = document.querySelectorAll('script[src]');
+    for (const s of scripts) {
+        const src = s.getAttribute('src');
+        if (src.includes('app.js')) {
+            // Script is loaded as "js/app.js" relative to the page
+            // The page URL gives us the base path
+            break;
+        }
+    }
+    // Use the current page path as base, stripping trailing index.html
+    let base = window.location.pathname.replace(/index\.html$/, '');
+    if (!base.endsWith('/')) base += '/';
+    return base;
+})();
+
+function apiUrl(path) {
+    // path like "api/projects" or "api/ip"
+    return BASE_URL + path;
+}
+
 // --- State ---
 let project = {
     name: '',
@@ -680,7 +703,7 @@ function save() {
 
 async function syncToServer() {
     try {
-        await fetch(`/api/projects/${cloudId}`, {
+        await fetch(apiUrl(`api/projects/${cloudId}`), {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ data: project })
@@ -692,7 +715,7 @@ async function syncToServer() {
 
 async function loadFromServer(id) {
     try {
-        const res = await fetch(`/api/projects/${id}`);
+        const res = await fetch(apiUrl(`api/projects/${id}`));
         if (!res.ok) {
             showToast('Project not found', 'error');
             return;
@@ -705,7 +728,7 @@ async function loadFromServer(id) {
         if (syncTimer) clearInterval(syncTimer);
         syncTimer = setInterval(async () => {
             try {
-                const r = await fetch(`/api/projects/${id}`);
+                const r = await fetch(apiUrl(`api/projects/${id}`));
                 if (r.ok) {
                     const { data: serverData } = await r.json();
                     // Simple change detection
@@ -723,7 +746,7 @@ async function loadFromServer(id) {
 
 async function startShare() {
     if (cloudId) {
-        const res = await fetch('/api/ip');
+        const res = await fetch(apiUrl('api/ip'));
         const { ip } = await res.json();
         const link = `http://${ip}:8000/?id=${cloudId}`;
         copyToClipboard(link);
@@ -735,7 +758,7 @@ async function startShare() {
     if (!confirm(t('shareConfirm'))) return;
 
     try {
-        const res = await fetch('/api/projects', {
+        const res = await fetch(apiUrl('api/projects'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ data: project })
@@ -745,7 +768,7 @@ async function startShare() {
         updateURL();
         document.getElementById('syncBadge')?.classList.remove('hidden');
 
-        const ipRes = await fetch('/api/ip');
+        const ipRes = await fetch(apiUrl('api/ip'));
         const { ip } = await ipRes.json();
         const link = `http://${ip}:8000/?id=${cloudId}`;
         prompt(t('sharePrompt'), link);
