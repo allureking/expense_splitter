@@ -1,103 +1,122 @@
-import http.server
-import socketserver
 import json
 import socket
-import os
+import sqlite3
 import uuid
-from urllib.parse import urlparse, parse_qs
+from contextlib import asynccontextmanager
+from pathlib import Path
 
-PORT = 8000
-DB_FILE = "projects_db.json"
+import aiosqlite
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from starlette.responses import FileResponse
+
+DB_PATH = Path(__file__).parent / "expense_splitter.db"
+STATIC_DIR = Path(__file__).parent / "static"
+
+
+async def init_db():
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS projects (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL DEFAULT '',
+                data TEXT NOT NULL DEFAULT '{}',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        await db.commit()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+
 
 def get_local_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        # Connect to a dummy address to find the interface IP
-        s.connect(('10.255.255.255', 1))
-        IP = s.getsockname()[0]
+        s.connect(("10.255.255.255", 1))
+        ip = s.getsockname()[0]
     except Exception:
-        IP = '127.0.0.1'
+        ip = "127.0.0.1"
     finally:
         s.close()
-    return IP
+    return ip
 
-class ExpenseHandler(http.server.SimpleHTTPRequestHandler):
-    def do_POST(self):
-        # Handle Saving/Updating
-        if self.path == '/api/save':
-            length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(length)
-            
-            try:
-                request_payload = json.loads(post_data)
-                
-                # Load existing DB
-                db = {}
-                if os.path.exists(DB_FILE):
-                    with open(DB_FILE, 'r', encoding='utf-8') as f:
-                        try: db = json.load(f)
-                        except: pass
-                
-                # Determine ID (Existing or New)
-                project_id = request_payload.get('id')
-                if not project_id:
-                    project_id = str(uuid.uuid4())[:8] # Generate new short ID
-                
-                # Update Data
-                db[project_id] = request_payload.get('data')
-                
-                with open(DB_FILE, 'w', encoding='utf-8') as f:
-                    json.dump(db, f)
-                
-                # Send Response
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
-                
-                response = {"success": True, "id": project_id}
-                self.wfile.write(json.dumps(response).encode('utf-8'))
-                
-            except Exception as e:
-                self.send_error(500, str(e))
-        else:
-            self.send_error(404)
 
-    def do_GET(self):
-        parsed = urlparse(self.path)
-        
-        # Handle Loading
-        if parsed.path == '/api/get':
-            query = parse_qs(parsed.query)
-            project_id = query.get('id', [None])[0]
-            
-            if project_id and os.path.exists(DB_FILE):
-                with open(DB_FILE, 'r', encoding='utf-8') as f:
-                    try:
-                        db = json.load(f)
-                        data = db.get(project_id)
-                        if data:
-                            self.send_response(200)
-                            self.send_header('Content-type', 'application/json')
-                            self.end_headers()
-                            self.wfile.write(json.dumps(data).encode('utf-8'))
-                            return
-                    except: pass
-            
-            self.send_error(404, "Project not found")
-        
-        # Handle IP request for sharing link
-        elif parsed.path == '/api/ip':
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            self.wfile.write(json.dumps({"ip": get_local_ip()}).encode('utf-8'))
+# --- API Routes ---
 
-        else:
-            # Default: Serve static files (index.html)
-            super().do_GET()
+@app.post("/api/projects")
+async def create_project(payload: dict):
+    project_id = str(uuid.uuid4())[:8]
+    data = payload.get("data", {})
+    name = data.get("name", "")
 
-print(f"✅ Server running. Open http://localhost:{PORT}")
-print("Press Ctrl+C to stop.")
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO projects (id, name, data) VALUES (?, ?, ?)",
+            (project_id, name, json.dumps(data, ensure_ascii=False)),
+        )
+        await db.commit()
 
-with socketserver.TCPServer(("", PORT), ExpenseHandler) as httpd:
-    httpd.serve_forever()
+    return {"success": True, "id": project_id}
+
+
+@app.get("/api/projects/{project_id}")
+async def get_project(project_id: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            "SELECT data, updated_at FROM projects WHERE id = ?", (project_id,)
+        )
+        row = await cursor.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    return {"data": json.loads(row["data"]), "updated_at": row["updated_at"]}
+
+
+@app.put("/api/projects/{project_id}")
+async def update_project(project_id: str, payload: dict):
+    data = payload.get("data", {})
+    name = data.get("name", "")
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("SELECT id FROM projects WHERE id = ?", (project_id,))
+        if not await cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        await db.execute(
+            "UPDATE projects SET name = ?, data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (name, json.dumps(data, ensure_ascii=False), project_id),
+        )
+        await db.commit()
+
+    return {"success": True, "id": project_id}
+
+
+@app.get("/api/ip")
+async def get_ip():
+    return {"ip": get_local_ip()}
+
+
+# --- Static Files ---
+
+@app.get("/")
+async def serve_index():
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+app.mount("/", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>SplitEase</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+</head>
+<body>
+
+<div id="toastContainer" class="toast-container"></div>
+
+<div class="app-container">
+
+    <!-- Header -->
+    <header class="app-header">
+        <span class="app-logo" data-i18n="appTitle">SplitEase</span>
+        <div class="header-actions">
+            <span id="syncBadge" class="sync-badge hidden">
+                <span class="sync-dot"></span>
+                Live
+            </span>
+            <button class="icon-button" onclick="startShare()" title="Share">&#128279;</button>
+            <button class="icon-button" id="themeBtn" onclick="toggleTheme()">&#127769;</button>
+            <button class="icon-button" id="langBtn" onclick="toggleLang(); render();">EN</button>
+        </div>
+    </header>
+
+    <!-- Tabs -->
+    <div class="tab-bar">
+        <button class="tab-btn active" data-tab="active" onclick="switchTab('active')" data-i18n="tabActive">Active</button>
+        <button class="tab-btn" data-tab="history" onclick="switchTab('history')" data-i18n="tabHistory">History</button>
+    </div>
+
+    <!-- ===== Active View ===== -->
+    <div id="viewActive">
+
+        <!-- Project Info -->
+        <div class="card">
+            <div class="project-header">
+                <input type="text" id="projectName" data-i18n-ph="projectNamePh"
+                       placeholder="e.g. Orlando Trip 2025"
+                       oninput="onProjectNameChange(this.value)">
+                <select id="currencySelect" class="currency-select" onchange="onCurrencyChange(this.value)">
+                    <option value="¥">¥ CNY</option>
+                    <option value="$">$ USD</option>
+                    <option value="€">€ EUR</option>
+                    <option value="£">£ GBP</option>
+                    <option value="₩">₩ KRW</option>
+                    <option value="JP¥">JP¥ JPY</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- People -->
+        <div class="card">
+            <div class="card-title" data-i18n="people">People</div>
+            <div id="peopleList" class="people-section">
+                <!-- Rendered by JS -->
+            </div>
+        </div>
+
+        <!-- Add Expense -->
+        <div class="card">
+            <div class="card-title" data-i18n="addExpense">Add Expense</div>
+            <div class="add-expense-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label data-i18n="itemName">Description</label>
+                        <input type="text" id="expenseName" data-i18n-ph="itemNamePh"
+                               placeholder="What was it for?"
+                               onkeydown="if(event.key==='Enter'){addExpense();event.preventDefault()}">
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="amount">Amount</label>
+                        <input type="number" id="expenseAmount" placeholder="0.00" step="0.01" min="0"
+                               onkeydown="if(event.key==='Enter'){addExpense();event.preventDefault()}">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label data-i18n="payer">Who paid?</label>
+                        <select id="expensePayer">
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="date">Date</label>
+                        <input type="date" id="expenseDate">
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-block" onclick="addExpense()" data-i18n="addExpense">Add Expense</button>
+            </div>
+        </div>
+
+        <!-- Import / Export -->
+        <div class="card">
+            <div class="card-title" data-i18n="importExport">Import / Export</div>
+            <div class="import-area">
+                <div class="import-title" data-i18n="importCSV">Import MOZE CSV</div>
+                <input type="file" id="csvFileInput" accept=".csv">
+                <button class="btn btn-secondary btn-sm mt-8" onclick="handleCSVImport()" data-i18n="processCSV">Import</button>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:12px">
+                <button class="btn btn-outline btn-block" onclick="showExportMenu()" data-i18n="exportCSV">Export CSV</button>
+            </div>
+        </div>
+
+        <!-- Expense List -->
+        <div class="card">
+            <div class="card-title" data-i18n="expenses">Expenses</div>
+            <div id="expenseList" class="expense-list">
+                <!-- Rendered by JS -->
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div id="summarySection" class="card summary-section hidden">
+            <div class="card-title" data-i18n="summary">Summary</div>
+
+            <div class="total-banner">
+                <div class="total-label" data-i18n="totalCost">Total</div>
+                <div id="totalAmount" class="total-amount">$0.00</div>
+            </div>
+
+            <div id="personSummaryGrid" class="person-summary-grid">
+                <!-- Rendered by JS -->
+            </div>
+
+            <div class="settle-section">
+                <div class="settle-title">
+                    <span data-i18n="settlement">Settlement</span>
+                    <button class="btn btn-sm btn-outline" onclick="copySettlement()" data-i18n="settleCopy">Copy</button>
+                </div>
+                <div id="settleList" class="settle-list">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Actions -->
+        <div class="bottom-bar">
+            <button class="btn btn-success" onclick="archiveProject()" data-i18n="archive">Archive Project</button>
+            <button class="btn btn-outline" onclick="resetProject()" data-i18n="newProject">New Project</button>
+        </div>
+
+    </div>
+
+    <!-- ===== History View ===== -->
+    <div id="viewHistory" class="hidden">
+        <div class="card">
+            <div class="card-title" data-i18n="history">History</div>
+            <div id="historyList" class="history-list">
+                <!-- Rendered by JS -->
+            </div>
+            <button class="btn btn-outline mt-16" onclick="clearHistory()" style="color:var(--danger)"
+                    data-i18n="clearHistory">Clear All</button>
+        </div>
+    </div>
+
+</div>
+
+<!-- ===== Edit Expense Modal ===== -->
+<div id="editModal" class="modal-overlay" onclick="if(event.target===this)closeEditModal()">
+    <div class="modal-content">
+        <div class="modal-handle"></div>
+        <div class="modal-title" data-i18n="editExpense">Edit Expense</div>
+        <input type="hidden" id="editExpId">
+
+        <div class="form-group mb-12">
+            <label data-i18n="itemName">Description</label>
+            <input type="text" id="editExpName">
+        </div>
+
+        <div class="form-row mb-12">
+            <div class="form-group">
+                <label data-i18n="amount">Amount</label>
+                <input type="number" id="editExpAmount" step="0.01" min="0">
+            </div>
+            <div class="form-group">
+                <label data-i18n="date">Date</label>
+                <input type="date" id="editExpDate">
+            </div>
+        </div>
+
+        <div class="form-group mb-12">
+            <label data-i18n="payer">Who paid?</label>
+            <div id="editExpPayer" class="payer-select">
+                <!-- Rendered by JS -->
+            </div>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeEditModal()" data-i18n="cancel">Cancel</button>
+            <button class="btn btn-primary" onclick="saveEdit()" data-i18n="save">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Export Modal ===== -->
+<div id="exportModal" class="modal-overlay" onclick="if(event.target===this)closeExportModal()">
+    <div class="modal-content">
+        <div class="modal-handle"></div>
+        <div class="modal-title" data-i18n="exportCSV">Export CSV</div>
+        <div id="exportPersonList">
+            <!-- Rendered by JS -->
+        </div>
+        <button class="btn btn-secondary btn-block mt-16" onclick="closeExportModal()" data-i18n="cancel">Cancel</button>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="/js/i18n.js"></script>
+<script src="/js/settle.js"></script>
+<script src="/js/csv.js"></script>
+<script src="/js/app.js"></script>
+
+<script>
+    // Set today's date as default
+    document.getElementById('expenseDate').valueAsDate = new Date();
+
+    // Update lang button text
+    const langObserver = new MutationObserver(() => {
+        document.getElementById('langBtn').textContent = currentLang === 'en' ? 'EN' : '中';
+        updatePayerOptions();
+    });
+
+    // Watch for language changes
+    setInterval(() => {
+        const btn = document.getElementById('langBtn');
+        if (btn) btn.textContent = currentLang === 'en' ? 'EN' : '中';
+    }, 500);
+</script>
+
+</body>
+</html>
